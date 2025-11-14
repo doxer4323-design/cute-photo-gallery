@@ -19,10 +19,16 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     e.preventDefault()
 
     try {
-      const userCredential = await loginUser(username, password)
+      // Convert username to email if it's not already in email format
+      let email = username
+      if (!username.includes('@')) {
+        email = `${username}@cute.com`
+      }
+
+      const userCredential = await loginUser(email, password)
       
       // Check if it's the special user
-      if (username === 'shruti' || username === 'demo@cute.com') {
+      if (username === 'shruti' || username === 'demo@cute.com' || email === 'shruti@cute.com') {
         setIsSpecialUser(true)
         setModalMessage("Madam Ji, You Don't Need Password! 👑")
       } else {
@@ -35,6 +41,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         onLoginSuccess(userCredential.user.uid)
       }, isSpecialUser ? 2000 : 1500)
     } catch (error: any) {
+      console.error('Login error:', error)
       const errorMessage = error.message || 'Login failed!'
       setModalMessage(errorMessage)
       setShowModal(true)
@@ -61,6 +68,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           onLoginSuccess(userCredential.user.uid)
         }, 1000)
       } catch (err: any) {
+        console.error('Demo error:', err)
         setModalMessage('Error: ' + err.message)
         setShowModal(true)
       }
