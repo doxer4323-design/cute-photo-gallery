@@ -1,7 +1,13 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "env": {
-    "VITE_API_URL": "@api_url"
+  "api": {
+    "rewrites": [
+      {
+        "source": "/api/(.*)",
+        "destination": "/api/index.js"
+      }
+    ]
   }
 }
+

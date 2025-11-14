@@ -7,7 +7,7 @@ import DynamicWallpaper from './components/DynamicWallpaper'
 import { Photo } from './types'
 import './globals.css'
 
-const API_URL = (import.meta as any).env.VITE_API_URL ? `${(import.meta as any).env.VITE_API_URL}/api` : 'http://localhost:5000/api'
+const API_URL = '/api'
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
