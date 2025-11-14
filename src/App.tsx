@@ -7,7 +7,21 @@ import DynamicWallpaper from './components/DynamicWallpaper'
 import { Photo } from './types'
 import './globals.css'
 
-const API_URL = 'https://cute-photo-gallery.onrender.com/api'
+// Auto-detect API URL based on environment
+const getApiUrl = () => {
+  // If running on Vercel (production)
+  if (window.location.hostname === 'cute-photo-gallery.vercel.app') {
+    return 'https://cute-photo-gallery.onrender.com/api'
+  }
+  // If running on localhost (development)
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:5000/api'
+  }
+  // If running on local network (phone/other device)
+  return 'http://192.168.1.5:5000/api'
+}
+
+const API_URL = getApiUrl()
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
