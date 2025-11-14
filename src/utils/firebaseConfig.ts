@@ -1,6 +1,13 @@
 // Supabase configuration for cloud sync
-const SUPABASE_URL = 'https://xyzcompany.supabase.co' // Replace with your Supabase URL
-const SUPABASE_KEY = 'your-supabase-key' // Replace with your Supabase key
+// Instructions: Go to https://supabase.com and follow SUPABASE_SETUP.md
+// Then paste your credentials here:
+const SUPABASE_URL = 'https://marnepfbcrjrcarojgcw.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hcm5lcGZiY3JqcmNhcm9qZ2N3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMxNDY4MjQsImV4cCI6MjA3ODcyMjgyNH0.xL6-pojIsXHNma81Js2ZUPdxyIPE7GxHZ0SWLvurJEg'
+
+import { initSupabase, getSupabaseClient } from './supabase'
+
+// Initialize Supabase if credentials are available
+const useSupabase = initSupabase(SUPABASE_URL, SUPABASE_KEY)
 
 // Pre-configured Firebase - using CDN
 declare global {
@@ -153,8 +160,19 @@ export const getCurrentUser = () => {
   return stored ? JSON.parse(stored) : null
 }
 
-// Firestore Functions - using localStorage (persists across sessions)
+// Firestore Functions - with Supabase, then Firebase, then localStorage fallback
 export const savePhoto = async (userId: string, photo: any) => {
+  // Try Supabase first (cloud sync)
+  const supabase = getSupabaseClient()
+  if (supabase) {
+    try {
+      return await supabase.savePhoto(userId, photo)
+    } catch (error) {
+      console.log('Supabase savePhoto failed, trying Firebase...')
+    }
+  }
+
+  // Try Firebase
   try {
     if (window.firebase && window.firebase.firestore) {
       const db = window.firebase.firestore()
@@ -183,6 +201,17 @@ export const savePhoto = async (userId: string, photo: any) => {
 }
 
 export const getPhotos = async (userId: string) => {
+  // Try Supabase first (cloud sync)
+  const supabase = getSupabaseClient()
+  if (supabase) {
+    try {
+      return await supabase.getPhotos(userId)
+    } catch (error) {
+      console.log('Supabase getPhotos failed, trying Firebase...')
+    }
+  }
+
+  // Try Firebase
   try {
     if (window.firebase && window.firebase.firestore) {
       const db = window.firebase.firestore()
@@ -199,6 +228,18 @@ export const getPhotos = async (userId: string) => {
 }
 
 export const deletePhoto = async (photoId: string) => {
+  // Try Supabase first (cloud sync)
+  const supabase = getSupabaseClient()
+  if (supabase) {
+    try {
+      await supabase.deletePhoto(photoId)
+      return
+    } catch (error) {
+      console.log('Supabase deletePhoto failed, trying Firebase...')
+    }
+  }
+
+  // Try Firebase
   try {
     if (window.firebase && window.firebase.firestore) {
       const db = window.firebase.firestore()
@@ -216,6 +257,18 @@ export const deletePhoto = async (photoId: string) => {
 }
 
 export const updatePhoto = async (photoId: string, data: any) => {
+  // Try Supabase first (cloud sync)
+  const supabase = getSupabaseClient()
+  if (supabase) {
+    try {
+      await supabase.updatePhoto(photoId, data)
+      return
+    } catch (error) {
+      console.log('Supabase updatePhoto failed, trying Firebase...')
+    }
+  }
+
+  // Try Firebase
   try {
     if (window.firebase && window.firebase.firestore) {
       const db = window.firebase.firestore()
