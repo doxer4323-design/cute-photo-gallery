@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import DynamicWallpaper from './DynamicWallpaper'
 import { loginUser, signupUser } from '../utils/firebaseConfig'
 
@@ -8,59 +8,62 @@ interface LoginProps {
 }
 
 export default function Login({ onLoginSuccess }: LoginProps) {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [mode, setMode] = useState<'login' | 'signup'>('login')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [showModal, setShowModal] = useState(false)
+  const [modalMessage, setModalMessage] = useState('')
+  const [isSpecialUser, setIsSpecialUser] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-    setSuccess('')
-    setLoading(true)
 
     try {
-      let userCredential
-      if (mode === 'login') {
-        userCredential = await loginUser(email, password)
+      const userCredential = await loginUser(username, password)
+      
+      // Check if it's the special user
+      if (username === 'shruti' || username === 'demo@cute.com') {
+        setIsSpecialUser(true)
+        setModalMessage("Madam Ji, You Don't Need Password! 👑")
       } else {
-        userCredential = await signupUser(email, password)
+        setModalMessage('Welcome! 💖')
       }
 
-      setSuccess(mode === 'login' ? 'Login successful! 💖' : 'Account created! 🎀')
+      setShowModal(true)
       setTimeout(() => {
+        setShowModal(false)
         onLoginSuccess(userCredential.user.uid)
-      }, 1000)
-    } catch (err: any) {
-      setError(err.message || 'An error occurred')
-    } finally {
-      setLoading(false)
+      }, isSpecialUser ? 2000 : 1500)
+    } catch (error: any) {
+      const errorMessage = error.message || 'Login failed!'
+      setModalMessage(errorMessage)
+      setShowModal(true)
     }
   }
 
   const demoLogin = async () => {
-    setLoading(true)
     try {
       const userCredential = await loginUser('demo@cute.com', 'demo123456')
-      setSuccess('Demo login successful! 🎀')
+      setModalMessage('Demo Login! 🎀')
+      setShowModal(true)
       setTimeout(() => {
+        setShowModal(false)
         onLoginSuccess(userCredential.user.uid)
       }, 1000)
     } catch {
       // Demo account doesn't exist, create it
       try {
         const userCredential = await signupUser('demo@cute.com', 'demo123456')
-        setSuccess('Demo account created! Welcome! 💖')
+        setModalMessage('Demo Account Created! 🎀')
+        setShowModal(true)
         setTimeout(() => {
+          setShowModal(false)
           onLoginSuccess(userCredential.user.uid)
         }, 1000)
       } catch (err: any) {
-        setError('Demo login failed: ' + err.message)
+        setModalMessage('Error: ' + err.message)
+        setShowModal(true)
       }
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -84,9 +87,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               <span className="cute-text ml-2">Photo Gallery</span>
               <span className="animate-heartbeat ml-2">💖</span>
             </h1>
-            <p className="text-white text-lg drop-shadow-lg">
-              {mode === 'login' ? 'Login to your cute gallery 🎀' : 'Create your cute gallery 🎀'}
-            </p>
+            <p className="text-gray-600 text-lg">Login to your cute gallery 🎀</p>
           </motion.div>
 
           {/* Login Card */}
@@ -94,116 +95,204 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-white rounded-3xl p-8 shadow-2xl"
+            className="bg-white rounded-3xl p-8 shadow-xl"
           >
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Email Input */}
+            <form onSubmit={handleLogin} className="space-y-6">
+              {/* Username Input */}
               <div>
-                <label className="block text-sm font-semibold mb-2 text-pink-600">
-                  📧 Email
+                <label className="block text-sm cute-text font-semibold mb-2">
+                  👤 Username
                 </label>
-                <input
+                <motion.input
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter email"
+                  whileFocus={{ scale: 1.02 }}
                   className="w-full px-4 py-3 rounded-2xl border-2 border-pink-300 focus:border-pink-500 focus:outline-none transition text-gray-700 bg-pink-50"
                   required
                 />
               </div>
 
-              {/* Password Input */}
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-pink-600">
-                  🔐 Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-2xl border-2 border-pink-300 focus:border-pink-500 focus:outline-none transition text-gray-700 bg-pink-50"
-                  required
-                />
-              </div>
-
-              {/* Error Message */}
-              {error && (
+              {/* Password Input - Hidden for Shruti */}
+              {username.toLowerCase() !== 'shruti' && (
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  transition={{ duration: 0.3 }}
                 >
-                  {error}
+                  <label className="block text-sm cute-text font-semibold mb-2">
+                    🔐 Password
+                  </label>
+                  <div className="relative">
+                    <motion.input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter password"
+                      whileFocus={{ scale: 1.02 }}
+                      className="w-full px-4 py-3 pr-12 rounded-2xl border-2 border-pink-300 focus:border-pink-500 focus:outline-none transition text-gray-700 bg-pink-50"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-lg"
+                    >
+                      {showPassword ? '👁️' : '👁️‍🗨️'}
+                    </button>
+                  </div>
                 </motion.div>
               )}
 
-              {/* Success Message */}
-              {success && (
+              {/* Shruti Message */}
+              {username.toLowerCase() === 'shruti' && (
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-gradient-to-r from-yellow-100 to-pink-100 rounded-2xl p-4 text-center border-2 border-yellow-300"
                 >
-                  {success}
+                  <p className="cute-text font-bold text-lg">✨ Special User ✨</p>
+                  <p className="text-gray-600 text-sm mt-1">No password needed, Madam Ji! 👑</p>
                 </motion.div>
               )}
 
-              {/* Submit Button */}
-              <button
+              {/* Login Button */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white font-bold rounded-2xl transition-all active:scale-95 disabled:opacity-50 shadow-lg"
+                className="w-full py-3 bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white font-bold rounded-2xl shadow-lg"
               >
-                {loading ? '⏳ Loading...' : mode === 'login' ? '💖 Login' : '🎀 Sign Up'}
-              </button>
+                💕 Login
+              </motion.button>
 
-              {/* Toggle Mode */}
-              <button
+              {/* Divider */}
+              <div className="flex items-center">
+                <div className="flex-1 border-t-2 border-pink-200"></div>
+                <span className="px-4 text-pink-600 font-semibold">OR</span>
+                <div className="flex-1 border-t-2 border-pink-200"></div>
+              </div>
+
+              {/* Demo Button */}
+              <motion.button
                 type="button"
-                onClick={() => {
-                  setMode(mode === 'login' ? 'signup' : 'login')
-                  setError('')
-                  setSuccess('')
-                }}
-                className="w-full text-center text-sm text-pink-600 hover:text-pink-700 font-semibold py-2"
+                onClick={demoLogin}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-full py-3 bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white font-bold rounded-2xl shadow-lg"
               >
-                {mode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Login'}
-              </button>
+                ✨ Demo Login
+              </motion.button>
             </form>
 
-            {/* Divider */}
-            <div className="flex items-center my-6">
-              <div className="flex-1 border-t-2 border-pink-200"></div>
-              <span className="px-4 text-pink-600 font-semibold">OR</span>
-              <div className="flex-1 border-t-2 border-pink-200"></div>
+            {/* Cute Decorations */}
+            <div className="flex justify-center gap-4 mt-8">
+              <span className="panda">🐼</span>
+              <span className="panda" style={{ animationDelay: '0.5s' }}>
+                🎀
+              </span>
+              <span className="panda" style={{ animationDelay: '1s' }}>
+                🐼
+              </span>
             </div>
-
-            {/* Demo Button */}
-            <button
-              onClick={demoLogin}
-              disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white font-bold rounded-2xl transition-all active:scale-95 disabled:opacity-50 shadow-lg"
-            >
-              {loading ? '⏳ Loading...' : '✨ Try Demo (demo@cute.com)'}
-            </button>
-
-            <p className="text-xs text-center text-gray-500 mt-4">
-              Demo password: demo123456
-            </p>
           </motion.div>
 
-          {/* Footer */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="text-center text-white drop-shadow-lg mt-8 text-sm"
-          >
-            🎀 Made with 💕 for cute moments 🎀
-          </motion.p>
+          {/* Modal */}
+          <AnimatePresence>
+            {showModal && isSpecialUser && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 flex items-center justify-center p-4 z-50"
+              >
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.5 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-black"
+                />
+
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  exit={{ scale: 0, rotate: 180 }}
+                  transition={{ type: 'spring', duration: 0.6 }}
+                  className="bg-white rounded-3xl p-8 shadow-2xl text-center max-w-sm relative z-10"
+                >
+                  <motion.div
+                    animate={{ scale: [1, 1.3, 1.2, 1.3, 1] }}
+                    transition={{ duration: 0.8, repeat: 2 }}
+                    className="text-7xl mb-4 block"
+                  >
+                    👑
+                  </motion.div>
+                  <h3 className="text-3xl cute-text font-bold mb-2">Madam Ji!</h3>
+                  <p className="text-xl font-semibold text-gray-700 mb-3">
+                    You Don't Need Password! 💖
+                  </p>
+                  <p className="text-gray-600 mb-4">Welcome to your special gallery! ✨</p>
+                  <div className="flex justify-center gap-4 mt-6">
+                    <span className="text-3xl animate-bounce">👑</span>
+                    <span className="text-3xl animate-bounce" style={{ animationDelay: '0.1s' }}>
+                      💕
+                    </span>
+                    <span className="text-3xl animate-bounce" style={{ animationDelay: '0.2s' }}>
+                      👑
+                    </span>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Modal - Other Users */}
+          <AnimatePresence>
+            {showModal && !isSpecialUser && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 flex items-center justify-center p-4 z-50"
+              >
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.5 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-black"
+                />
+
+                <motion.div
+                  initial={{ y: -50, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 50, opacity: 0 }}
+                  className="bg-white rounded-3xl p-8 shadow-2xl text-center max-w-sm relative z-10"
+                >
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 0.6, repeat: 2 }}
+                    className="text-6xl mb-4 block"
+                  >
+                    {modalMessage.includes('Error') ? '❌' : '💖'}
+                  </motion.div>
+                  <h3 className="text-2xl cute-text font-bold mb-2">{modalMessage}</h3>
+                  <div className="flex justify-center gap-3 mt-4">
+                    <span className="text-2xl animate-bounce">🎀</span>
+                    <span className="text-2xl animate-bounce" style={{ animationDelay: '0.1s' }}>
+                      💖
+                    </span>
+                    <span className="text-2xl animate-bounce" style={{ animationDelay: '0.2s' }}>
+                      🎀
+                    </span>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </div>
     </DynamicWallpaper>
   )
 }
+
