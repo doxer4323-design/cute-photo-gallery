@@ -11,6 +11,9 @@ export class SupabaseClient {
   // Get photos for a user from Supabase
   async getPhotos(userId: string) {
     try {
+      // Log for debugging
+      console.log('Fetching photos for userId:', userId)
+      
       const response = await fetch(
         `${this.url}/rest/v1/photos?user_id=eq.${userId}&order=created_at.desc`,
         {
@@ -23,13 +26,16 @@ export class SupabaseClient {
       )
 
       if (!response.ok) {
+        console.error('Supabase response not ok:', response.status, response.statusText)
         throw new Error('Failed to fetch photos')
       }
 
-      return await response.json()
+      const data = await response.json()
+      console.log('Fetched photos from Supabase:', data)
+      return data
     } catch (error) {
       console.error('Supabase getPhotos error:', error)
-      throw error
+      return [] // Return empty array on error to use localStorage fallback
     }
   }
 
@@ -37,6 +43,8 @@ export class SupabaseClient {
   async savePhoto(userId: string, photo: any) {
     try {
       const id = Date.now().toString()
+      console.log('Saving photo to Supabase with userId:', userId)
+      
       const response = await fetch(
         `${this.url}/rest/v1/photos`,
         {
@@ -59,9 +67,12 @@ export class SupabaseClient {
       )
 
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Supabase save error:', response.status, errorText)
         throw new Error('Failed to save photo')
       }
 
+      console.log('Photo saved successfully to Supabase:', id)
       return id
     } catch (error) {
       console.error('Supabase savePhoto error:', error)

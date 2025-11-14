@@ -160,34 +160,9 @@ export const getCurrentUser = () => {
   return stored ? JSON.parse(stored) : null
 }
 
-// Firestore Functions - with Supabase, then Firebase, then localStorage fallback
+// Firestore Functions - localStorage + Supabase cloud sync
 export const savePhoto = async (userId: string, photo: any) => {
-  // Try Supabase first (cloud sync)
-  const supabase = getSupabaseClient()
-  if (supabase) {
-    try {
-      return await supabase.savePhoto(userId, photo)
-    } catch (error) {
-      console.log('Supabase savePhoto failed, trying Firebase...')
-    }
-  }
-
-  // Try Firebase
-  try {
-    if (window.firebase && window.firebase.firestore) {
-      const db = window.firebase.firestore()
-      const docRef = await db.collection('photos').add({
-        userId,
-        ...photo,
-        createdAt: new Date()
-      })
-      return docRef.id
-    }
-  } catch (error) {
-    console.log('Firebase savePhoto failed, using localStorage...')
-  }
-
-  // Fallback: Save to localStorage (persists across sessions!)
+  // Save to localStorage first (instant, always works)
   const photos = JSON.parse(localStorage.getItem(PHOTOS_KEY) || '[]')
   const id = Date.now().toString()
   photos.push({
@@ -197,92 +172,77 @@ export const savePhoto = async (userId: string, photo: any) => {
     createdAt: new Date().toISOString()
   })
   localStorage.setItem(PHOTOS_KEY, JSON.stringify(photos))
+
+  // Then sync to Supabase in background (cross-device sync)
+  const supabase = getSupabaseClient()
+  if (supabase) {
+    try {
+      await supabase.savePhoto(userId, photo)
+      console.log('✓ Photo synced to Supabase cloud')
+    } catch (error) {
+      console.log('⚠ Supabase sync failed, but photo saved locally:', error)
+    }
+  }
+
   return id
 }
 
 export const getPhotos = async (userId: string) => {
-  // Try Supabase first (cloud sync)
+  // Try loading from Supabase first (cloud - has newest photos)
   const supabase = getSupabaseClient()
   if (supabase) {
     try {
-      return await supabase.getPhotos(userId)
+      const supabasePhotos = await supabase.getPhotos(userId)
+      if (supabasePhotos && supabasePhotos.length > 0) {
+        console.log('✓ Loaded photos from Supabase cloud')
+        // Update localStorage with cloud photos
+        localStorage.setItem(PHOTOS_KEY, JSON.stringify(supabasePhotos))
+        return supabasePhotos
+      }
     } catch (error) {
-      console.log('Supabase getPhotos failed, trying Firebase...')
+      console.log('⚠ Supabase load failed, using local photos:', error)
     }
   }
 
-  // Try Firebase
-  try {
-    if (window.firebase && window.firebase.firestore) {
-      const db = window.firebase.firestore()
-      const snapshot = await db.collection('photos').where('userId', '==', userId).get()
-      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }))
-    }
-  } catch (error) {
-    console.log('Firebase getPhotos failed, using localStorage...')
-  }
-
-  // Fallback: Get from localStorage (persists across sessions!)
+  // Fallback: Get from localStorage
   const photos = JSON.parse(localStorage.getItem(PHOTOS_KEY) || '[]')
   return photos.filter((p: any) => p.userId === userId)
 }
 
 export const deletePhoto = async (photoId: string) => {
-  // Try Supabase first (cloud sync)
+  // Delete from localStorage first (instant)
+  const photos = JSON.parse(localStorage.getItem(PHOTOS_KEY) || '[]')
+  const filtered = photos.filter((p: any) => p.id !== photoId)
+  localStorage.setItem(PHOTOS_KEY, JSON.stringify(filtered))
+
+  // Then delete from Supabase in background
   const supabase = getSupabaseClient()
   if (supabase) {
     try {
       await supabase.deletePhoto(photoId)
-      return
+      console.log('✓ Photo deleted from Supabase cloud')
     } catch (error) {
-      console.log('Supabase deletePhoto failed, trying Firebase...')
+      console.log('⚠ Supabase delete failed, but deleted locally:', error)
     }
   }
-
-  // Try Firebase
-  try {
-    if (window.firebase && window.firebase.firestore) {
-      const db = window.firebase.firestore()
-      await db.collection('photos').doc(photoId).delete()
-      return
-    }
-  } catch (error) {
-    console.log('Firebase deletePhoto failed, using localStorage...')
-  }
-
-  // Fallback: Delete from localStorage
-  const photos = JSON.parse(localStorage.getItem(PHOTOS_KEY) || '[]')
-  const filtered = photos.filter((p: any) => p.id !== photoId)
-  localStorage.setItem(PHOTOS_KEY, JSON.stringify(filtered))
 }
 
 export const updatePhoto = async (photoId: string, data: any) => {
-  // Try Supabase first (cloud sync)
-  const supabase = getSupabaseClient()
-  if (supabase) {
-    try {
-      await supabase.updatePhoto(photoId, data)
-      return
-    } catch (error) {
-      console.log('Supabase updatePhoto failed, trying Firebase...')
-    }
-  }
-
-  // Try Firebase
-  try {
-    if (window.firebase && window.firebase.firestore) {
-      const db = window.firebase.firestore()
-      await db.collection('photos').doc(photoId).update(data)
-      return
-    }
-  } catch (error) {
-    console.log('Firebase updatePhoto failed, using localStorage...')
-  }
-
-  // Fallback: Update in localStorage
+  // Update in localStorage first (instant)
   const photos = JSON.parse(localStorage.getItem(PHOTOS_KEY) || '[]')
   const updated = photos.map((p: any) =>
     p.id === photoId ? { ...p, ...data } : p
   )
   localStorage.setItem(PHOTOS_KEY, JSON.stringify(updated))
+
+  // Then update in Supabase in background
+  const supabase = getSupabaseClient()
+  if (supabase) {
+    try {
+      await supabase.updatePhoto(photoId, data)
+      console.log('✓ Photo updated in Supabase cloud')
+    } catch (error) {
+      console.log('⚠ Supabase update failed, but updated locally:', error)
+    }
+  }
 }
