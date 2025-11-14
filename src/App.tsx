@@ -16,13 +16,16 @@ export default function App() {
 
   // Initialize Firebase on app load
   useEffect(() => {
-    initFirebase()
-    const user = getCurrentUser()
-    if (user) {
-      setUserId(user.uid)
-      setIsLoggedIn(true)
-      loadPhotos(user.uid)
+    const initApp = async () => {
+      await initFirebase()
+      const user = getCurrentUser()
+      if (user) {
+        setUserId(user.uid)
+        setIsLoggedIn(true)
+        loadPhotos(user.uid)
+      }
     }
+    initApp()
   }, [])
 
   const loadPhotos = async (uid: string) => {
