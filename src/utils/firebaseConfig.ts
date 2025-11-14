@@ -1,3 +1,7 @@
+// Supabase configuration for cloud sync
+const SUPABASE_URL = 'https://xyzcompany.supabase.co' // Replace with your Supabase URL
+const SUPABASE_KEY = 'your-supabase-key' // Replace with your Supabase key
+
 // Pre-configured Firebase - using CDN
 declare global {
   interface Window {
@@ -19,6 +23,8 @@ export const firebaseConfig = {
 // Fallback: Use localStorage for users if Firebase fails
 const USERS_KEY = 'cute_gallery_users'
 const CURRENT_USER_KEY = 'cute_gallery_current_user'
+const PHOTOS_KEY = 'cute_gallery_photos'
+const PHOTOS_SYNC_KEY = 'cute_gallery_photos_synced'
 
 const getStoredUsers = () => {
   const stored = localStorage.getItem(USERS_KEY)
@@ -147,9 +153,7 @@ export const getCurrentUser = () => {
   return stored ? JSON.parse(stored) : null
 }
 
-// Firestore Functions - using localStorage fallback
-const PHOTOS_KEY = 'cute_gallery_photos'
-
+// Firestore Functions - using localStorage (persists across sessions)
 export const savePhoto = async (userId: string, photo: any) => {
   try {
     if (window.firebase && window.firebase.firestore) {
@@ -162,10 +166,10 @@ export const savePhoto = async (userId: string, photo: any) => {
       return docRef.id
     }
   } catch (error) {
-    console.log('Firebase savePhoto failed, using fallback...')
+    console.log('Firebase savePhoto failed, using localStorage...')
   }
 
-  // Fallback: Save to localStorage
+  // Fallback: Save to localStorage (persists across sessions!)
   const photos = JSON.parse(localStorage.getItem(PHOTOS_KEY) || '[]')
   const id = Date.now().toString()
   photos.push({
@@ -186,10 +190,10 @@ export const getPhotos = async (userId: string) => {
       return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }))
     }
   } catch (error) {
-    console.log('Firebase getPhotos failed, using fallback...')
+    console.log('Firebase getPhotos failed, using localStorage...')
   }
 
-  // Fallback: Get from localStorage
+  // Fallback: Get from localStorage (persists across sessions!)
   const photos = JSON.parse(localStorage.getItem(PHOTOS_KEY) || '[]')
   return photos.filter((p: any) => p.userId === userId)
 }
@@ -202,7 +206,7 @@ export const deletePhoto = async (photoId: string) => {
       return
     }
   } catch (error) {
-    console.log('Firebase deletePhoto failed, using fallback...')
+    console.log('Firebase deletePhoto failed, using localStorage...')
   }
 
   // Fallback: Delete from localStorage
@@ -219,7 +223,7 @@ export const updatePhoto = async (photoId: string, data: any) => {
       return
     }
   } catch (error) {
-    console.log('Firebase updatePhoto failed, using fallback...')
+    console.log('Firebase updatePhoto failed, using localStorage...')
   }
 
   // Fallback: Update in localStorage
