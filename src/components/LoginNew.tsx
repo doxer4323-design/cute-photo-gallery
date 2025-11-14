@@ -104,10 +104,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   👤 Username
                 </label>
                 <motion.input
-                  type="email"
+                  type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter email"
+                  placeholder="Enter username or email"
                   whileFocus={{ scale: 1.02 }}
                   className="w-full px-4 py-3 rounded-2xl border-2 border-pink-300 focus:border-pink-500 focus:outline-none transition text-gray-700 bg-pink-50"
                   required
