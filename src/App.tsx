@@ -1,27 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import Login from './components/Login'
+import Login from './components/LoginNew'
 import PhotoUploader from './components/PhotoUploader'
 import PhotoCard from './components/PhotoCard'
 import DynamicWallpaper from './components/DynamicWallpaper'
 import { Photo } from './types'
+import { initFirebase, getPhotos, savePhoto, deletePhoto, updatePhoto, getCurrentUser, logoutUser } from './utils/firebaseConfig'
 import './globals.css'
-
-// Auto-detect API URL based on environment
-const getApiUrl = () => {
-  // If running on Vercel (production)
-  if (window.location.hostname === 'cute-photo-gallery.vercel.app') {
-    return 'https://cute-photo-gallery.onrender.com/api'
-  }
-  // If running on localhost (development)
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:5000/api'
-  }
-  // If running on local network (phone/other device)
-  return 'http://192.168.1.5:5000/api'
-}
-
-const API_URL = getApiUrl()
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -29,32 +14,24 @@ export default function App() {
   const [photos, setPhotos] = useState<Photo[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
-  // Always start with login page - clear any previous session
+  // Initialize Firebase on app load
   useEffect(() => {
-    // Always require fresh login
-    setIsLoggedIn(false)
-    setUserId(null)
-    setPhotos([])
+    initFirebase()
+    const user = getCurrentUser()
+    if (user) {
+      setUserId(user.uid)
+      setIsLoggedIn(true)
+      loadPhotos(user.uid)
+    }
   }, [])
 
-  // Load photos from API when user is logged in
-  useEffect(() => {
-    if (isLoggedIn && userId) {
-      fetchPhotos()
-    }
-  }, [isLoggedIn, userId])
-
-  const fetchPhotos = async () => {
-    if (!userId) return
+  const loadPhotos = async (uid: string) => {
     try {
       setIsLoading(true)
-      const res = await fetch(`${API_URL}/photos/${userId}`)
-      const data = await res.json()
-      if (data.photos) {
-        setPhotos(data.photos)
-      }
+      const fetchedPhotos = await getPhotos(uid)
+      setPhotos(fetchedPhotos as Photo[])
     } catch (error) {
-      console.error('Failed to fetch photos:', error)
+      console.error('Failed to load photos:', error)
     } finally {
       setIsLoading(false)
     }
@@ -63,16 +40,14 @@ export default function App() {
   const handleLoginSuccess = (newUserId: string) => {
     setUserId(newUserId)
     setIsLoggedIn(true)
-    localStorage.setItem('cuteGalleryLoggedIn', 'true')
-    localStorage.setItem('cuteGalleryUserId', newUserId)
+    loadPhotos(newUserId)
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logoutUser()
     setIsLoggedIn(false)
     setUserId(null)
     setPhotos([])
-    localStorage.removeItem('cuteGalleryLoggedIn')
-    localStorage.removeItem('cuteGalleryUserId')
   }
 
   // Show login page if not logged in
@@ -83,47 +58,41 @@ export default function App() {
   const handlePhotoUpload = async (image: string, caption: string, song?: string, songName?: string) => {
     if (!userId) return
     try {
-      const res = await fetch(`${API_URL}/photos`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId,
-          image,
-          caption,
-          song,
-          songName
-        })
-      })
-      const data = await res.json()
-      if (data.photo) {
-        setPhotos([data.photo, ...photos])
+      const newPhoto = {
+        image,
+        caption,
+        song: song || '',
+        songName: songName || '',
       }
+      await savePhoto(userId, newPhoto)
+      await loadPhotos(userId)
     } catch (error) {
       console.error('Failed to upload photo:', error)
+      alert('Failed to upload photo')
     }
   }
 
   const handleDeletePhoto = async (id: string) => {
     try {
-      const res = await fetch(`${API_URL}/photos/${id}`, {
-        method: 'DELETE'
-      })
-      if (res.ok) {
-        setPhotos(photos.filter((p) => p.id !== id))
-      }
+      await deletePhoto(id)
+      setPhotos(photos.filter((p) => p.id !== id))
     } catch (error) {
       console.error('Failed to delete photo:', error)
+      alert('Failed to delete photo')
     }
   }
 
-  const handleUpdatePhoto = (id: string, caption: string, song?: string, songName?: string) => {
-    setPhotos(photos.map((p) => 
-      p.id === id 
-        ? { ...p, caption, song, songName }
-        : p
-    ))
+  const handleUpdatePhoto = async (id: string, caption: string, song?: string, songName?: string) => {
+    try {
+      await updatePhoto(id, { caption, song, songName })
+      setPhotos(photos.map((p) => 
+        p.id === id 
+          ? { ...p, caption, song, songName }
+          : p
+      ))
+    } catch (error) {
+      console.error('Failed to update photo:', error)
+    }
   }
 
   return (
