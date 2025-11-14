@@ -1,0 +1,243 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Animated gradient background */
+.cute-bg {
+  background: linear-gradient(-45deg, #FFE5F0, #FFB6D9, #FFC0CB, #FFD1DC, #FFE5F0);
+  background-size: 400% 400%;
+  animation: gradient 15s ease infinite;
+  min-height: 100vh;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Cute button styles */
+.cute-btn {
+  background: linear-gradient(135deg, #FFB6D9 0%, #FF69B4 100%);
+  border: none;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.cute-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(255, 105, 180, 0.5);
+}
+
+.cute-btn:active {
+  transform: translateY(-1px);
+}
+
+.cute-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.cute-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Cute input styles */
+.cute-input {
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid #FFB6D9;
+  padding: 12px 16px;
+  border-radius: 15px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.cute-input:focus {
+  outline: none;
+  border-color: #FF69B4;
+  box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.1);
+}
+
+/* Photo card */
+.photo-card {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(255, 105, 180, 0.2);
+  transition: all 0.3s ease;
+  transform: scale(1);
+}
+
+.photo-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(255, 105, 180, 0.3);
+}
+
+.photo-card img {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+}
+
+/* Cute text */
+.cute-text {
+  color: #FF69B4;
+  font-weight: bold;
+}
+
+/* Heart animation */
+.heart {
+  display: inline-block;
+  animation: heartbeat 1s ease-in-out;
+}
+
+/* Panda emoji */
+.panda {
+  font-size: 2rem;
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FFE5F0;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #FFB6D9;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FF69B4;
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+  html, body {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input, textarea, select, button {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  body {
+    font-size: 14px;
+  }
+
+  .cute-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    min-height: 44px; /* iOS minimum tap target */
+  }
+
+  .cute-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 12px 12px;
+  }
+
+  .photo-card {
+    border-radius: 15px;
+  }
+
+  .photo-card img {
+    height: 200px;
+  }
+
+  .panda {
+    font-size: 1.5rem;
+  }
+
+  /* Safe area for notch */
+  @supports (padding: max(0px)) {
+    body {
+      padding-left: max(12px, env(safe-area-inset-left));
+      padding-right: max(12px, env(safe-area-inset-right));
+      padding-top: max(12px, env(safe-area-inset-top));
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 13px;
+  }
+
+  .cute-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  .heart {
+    font-size: 1.5rem;
+  }
+
+  .photo-card {
+    border-radius: 12px;
+  }
+
+  .photo-card img {
+    height: 160px;
+  }
+
+  /* Disable double-tap zoom */
+  button, input, textarea, select {
+    touch-action: manipulation;
+  }
+}
+
+/* Prevent layout shift from scrollbar */
+html {
+  overflow-y: scroll;
+}
+
+/* Better touch feedback */
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
