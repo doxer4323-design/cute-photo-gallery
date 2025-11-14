@@ -7,7 +7,7 @@ import DynamicWallpaper from './components/DynamicWallpaper'
 import { Photo } from './types'
 import './globals.css'
 
-const API_URL = '/api'
+const API_URL = 'https://cute-photo-gallery.onrender.com/api'
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
