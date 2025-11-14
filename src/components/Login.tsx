@@ -1,12 +1,11 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import DynamicWallpaper from './DynamicWallpaper'
+import { loginUser, signupUser } from '../utils/firebaseConfig'
 
 interface LoginProps {
   onLoginSuccess: (userId: string) => void
 }
-
-const API_URL = 'http://localhost:5000/api'
 
 export default function Login({ onLoginSuccess }: LoginProps) {
   const [username, setUsername] = useState('')
@@ -15,43 +14,39 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [modalMessage, setModalMessage] = useState('')
   const [isSpecialUser, setIsSpecialUser] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [isSignup, setIsSignup] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
 
     try {
-      const res = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ username, password: password || undefined })
-      })
-
-      const data = await res.json()
-
-      if (data.success && data.user) {
-        const { id, isSpecialUser: isSpecial } = data.user
-        setIsSpecialUser(isSpecial)
-
-        if (isSpecial) {
-          setModalMessage('Madam Ji, You Don\'t Need Password! 👑')
-        } else {
-          setModalMessage('Welcome Gauransh! 💖')
-        }
-
-        setShowModal(true)
-        setTimeout(() => {
-          setShowModal(false)
-          onLoginSuccess(id)
-        }, isSpecial ? 2000 : 1500)
+      let userCredential
+      
+      if (isSignup) {
+        // Sign up
+        userCredential = await signupUser(username, password)
+        setModalMessage('Account created! Welcome! 🎀')
       } else {
-        setModalMessage(data.error || 'Login failed!')
-        setShowModal(true)
+        // Login
+        userCredential = await loginUser(username, password)
+        
+        // Check if it's the special user (demo account or shruti)
+        if (username === 'shruti' || username === 'demo@cute.com') {
+          setIsSpecialUser(true)
+          setModalMessage("Madam Ji, You Don't Need Password! 👑")
+        } else {
+          setModalMessage('Welcome! 💖')
+        }
       }
-    } catch (error) {
-      console.error('Login error:', error)
-      setModalMessage('Error connecting to server! 😢')
+
+      setShowModal(true)
+      setTimeout(() => {
+        setShowModal(false)
+        onLoginSuccess(userCredential.user.uid)
+      }, isSpecialUser ? 2000 : 1500)
+    } catch (error: any) {
+      const errorMessage = error.message || 'Login failed!'
+      setModalMessage(errorMessage)
       setShowModal(true)
     }
   }
@@ -89,68 +84,103 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             {/* Username Input */}
             <div>
               <label className="block text-sm cute-text font-semibold mb-2">
-                👤 Username
+                👤 {isSignup ? 'Email' : 'Email'}
               </label>
               <motion.input
-                type="text"
+                type="email"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
+                placeholder={isSignup ? 'your@email.com' : 'your@email.com'}
                 whileFocus={{ scale: 1.02 }}
-                className="w-full px-4 py-3 rounded-2xl border-2 border-cute-pink focus:border-dark-pink focus:outline-none transition text-gray-700"
+                className="w-full px-4 py-3 rounded-2xl border-2 border-pink-300 focus:border-pink-500 focus:outline-none transition text-gray-700 bg-pink-50"
+                required
               />
             </div>
 
-            {/* Password Input - Hidden for Shruti */}
-            {username.toLowerCase() !== 'shruti' && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                transition={{ duration: 0.3 }}
-              >
-                <label className="block text-sm cute-text font-semibold mb-2">
-                  🔐 Password
-                </label>
-                <div className="relative">
-                  <motion.input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter password"
-                    whileFocus={{ scale: 1.02 }}
-                    className="w-full px-4 py-3 pr-12 rounded-2xl border-2 border-cute-pink focus:border-dark-pink focus:outline-none transition text-gray-700"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-lg"
-                  >
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Shruti Message */}
-            {username.toLowerCase() === 'shruti' && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-gradient-to-r from-yellow-100 to-pink-100 rounded-2xl p-4 text-center border-2 border-yellow-300"
-              >
-                <p className="cute-text font-bold text-lg">✨ Special User ✨</p>
-                <p className="text-gray-600 text-sm mt-1">No password needed, Madam Ji! 👑</p>
-              </motion.div>
-            )}
+            {/* Password Input */}
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              transition={{ duration: 0.3 }}
+            >
+              <label className="block text-sm cute-text font-semibold mb-2">
+                🔐 Password
+              </label>
+              <div className="relative">
+                <motion.input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  whileFocus={{ scale: 1.02 }}
+                  className="w-full px-4 py-3 pr-12 rounded-2xl border-2 border-pink-300 focus:border-pink-500 focus:outline-none transition text-gray-700 bg-pink-50"
+                  required={!isSignup}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-lg"
+                >
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
+            </motion.div>
 
             {/* Login Button */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               type="submit"
-              className="w-full cute-btn py-3 text-lg font-bold"
+              className="w-full py-3 bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white font-bold rounded-2xl shadow-lg transition-all"
             >
-              💕 Login
+              💖 {isSignup ? 'Create Account' : 'Login'}
+            </motion.button>
+
+            {/* Toggle between Login and Signup */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignup(!isSignup)
+                setModalMessage('')
+              }}
+              className="w-full text-center text-sm text-pink-600 hover:text-pink-700 font-semibold"
+            >
+              {isSignup ? 'Already have an account? Login' : "Don't have an account? Sign up"}
+            </button>
+
+            {/* Demo Button */}
+            <motion.button
+              type="button"
+              onClick={async () => {
+                try {
+                  const userCredential = await loginUser('demo@cute.com', 'demo123456')
+                  setModalMessage('Demo Login! 🎀')
+                  setShowModal(true)
+                  setTimeout(() => {
+                    setShowModal(false)
+                    onLoginSuccess(userCredential.user.uid)
+                  }, 1000)
+                } catch {
+                  // If demo account doesn't exist, create it
+                  try {
+                    const userCredential = await signupUser('demo@cute.com', 'demo123456')
+                    setModalMessage('Demo Account Created! 🎀')
+                    setShowModal(true)
+                    setTimeout(() => {
+                      setShowModal(false)
+                      onLoginSuccess(userCredential.user.uid)
+                    }, 1000)
+                  } catch (err: any) {
+                    setModalMessage('Error: ' + err.message)
+                    setShowModal(true)
+                  }
+                }
+              }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-full py-3 bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white font-bold rounded-2xl shadow-lg transition-all"
+            >
+              ✨ Demo Login
             </motion.button>
           </form>
 
