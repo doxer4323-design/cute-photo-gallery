@@ -8,8 +8,6 @@ interface PhotoCardProps {
   onUpdate: (id: string, caption: string, song?: string, songName?: string) => void
 }
 
-const API_URL = 'http://localhost:5000/api'
-
 export default function PhotoCard({ photo, onDelete, onUpdate }: PhotoCardProps) {
   const [isPlaying, setIsPlaying] = React.useState(false)
   const [isEditing, setIsEditing] = React.useState(false)
@@ -48,22 +46,9 @@ export default function PhotoCard({ photo, onDelete, onUpdate }: PhotoCardProps)
   const handleSaveEdit = async () => {
     try {
       setIsSaving(true)
-      const res = await fetch(`${API_URL}/photos/${photo.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          caption: editCaption,
-          song: editSong,
-          songName: editSongName
-        })
-      })
-
-      if (res.ok) {
-        onUpdate(photo.id, editCaption, editSong, editSongName)
-        setIsEditing(false)
-      }
+      // Call the onUpdate callback which handles Supabase + localStorage sync
+      await onUpdate(photo.id, editCaption, editSong, editSongName)
+      setIsEditing(false)
     } catch (error) {
       console.error('Failed to update photo:', error)
     } finally {
