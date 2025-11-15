@@ -67,8 +67,15 @@ const waitForFirebase = () => {
 export const initFirebase = async () => {
   await waitForFirebase()
   
-  // Clean up old large images from localStorage on startup
+  // Nuclear option: if photos storage is over 1MB, clear it completely
   try {
+    const stored = localStorage.getItem(PHOTOS_KEY)
+    if (stored && stored.length > 1000000) {
+      console.log('⚠️ Storage too large, clearing...')
+      localStorage.removeItem(PHOTOS_KEY)
+    }
+    
+    // Clean up old large images from localStorage on startup
     const photos = JSON.parse(localStorage.getItem(PHOTOS_KEY) || '[]')
     const cleaned = photos.map((p: any) => ({
       id: p.id,
@@ -79,9 +86,9 @@ export const initFirebase = async () => {
       // Remove image and song to save space - they're in Supabase
     }))
     localStorage.setItem(PHOTOS_KEY, JSON.stringify(cleaned))
-    console.log('🧹 Cleaned up localStorage (removed large images)')
+    console.log('🧹 Cleaned up localStorage')
   } catch (e) {
-    // Ignore if localStorage was empty
+    console.log('Cleanup note:', e)
   }
   
   if (!fbApp && window.firebase && window.firebase.initializeApp) {
