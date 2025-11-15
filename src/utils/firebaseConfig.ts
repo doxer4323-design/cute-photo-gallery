@@ -67,6 +67,23 @@ const waitForFirebase = () => {
 export const initFirebase = async () => {
   await waitForFirebase()
   
+  // Clean up old large images from localStorage on startup
+  try {
+    const photos = JSON.parse(localStorage.getItem(PHOTOS_KEY) || '[]')
+    const cleaned = photos.map((p: any) => ({
+      id: p.id,
+      userId: p.userId,
+      caption: p.caption,
+      songName: p.songName || '',
+      createdAt: p.createdAt
+      // Remove image and song to save space - they're in Supabase
+    }))
+    localStorage.setItem(PHOTOS_KEY, JSON.stringify(cleaned))
+    console.log('🧹 Cleaned up localStorage (removed large images)')
+  } catch (e) {
+    // Ignore if localStorage was empty
+  }
+  
   if (!fbApp && window.firebase && window.firebase.initializeApp) {
     try {
       fbApp = window.firebase.initializeApp(firebaseConfig)
@@ -162,25 +179,31 @@ export const getCurrentUser = () => {
 
 // Firestore Functions - localStorage + Supabase cloud sync
 export const savePhoto = async (userId: string, photo: any) => {
-  // Save to localStorage first (instant, always works)
-  const photos = JSON.parse(localStorage.getItem(PHOTOS_KEY) || '[]')
+  // Create metadata object (without storing huge image in localStorage)
   const id = Date.now().toString()
-  photos.push({
+  const photoMetadata = {
     id,
     userId,
-    ...photo,
+    caption: photo.caption,
+    songName: photo.songName || '',
     createdAt: new Date().toISOString()
-  })
-  localStorage.setItem(PHOTOS_KEY, JSON.stringify(photos))
+    // NOTE: image and song are NOT stored in localStorage to save space
+  }
 
-  // Then sync to Supabase in background (cross-device sync)
+  // Save metadata to localStorage
+  const photos = JSON.parse(localStorage.getItem(PHOTOS_KEY) || '[]')
+  photos.push(photoMetadata)
+  localStorage.setItem(PHOTOS_KEY, JSON.stringify(photos))
+  console.log('💾 Saved metadata to localStorage')
+
+  // Then sync full photo to Supabase in background (cross-device sync)
   const supabase = getSupabaseClient()
   if (supabase) {
     try {
       await supabase.savePhoto(userId, photo)
-      console.log('✓ Photo synced to Supabase cloud')
+      console.log('✓ Photo synced to Supabase cloud with full image')
     } catch (error) {
-      console.log('⚠ Supabase sync failed, but photo saved locally:', error)
+      console.log('⚠ Supabase sync failed, metadata saved locally:', error)
     }
   }
 
