@@ -61,17 +61,21 @@ export default function App() {
   const handlePhotoUpload = async (image: string, caption: string, song?: string, songName?: string) => {
     if (!userId) return
     try {
+      console.log('📸 Uploading photo for user:', userId)
       const newPhoto = {
         image,
         caption,
         song: song || '',
         songName: songName || '',
       }
+      console.log('Photo size:', (image.length / 1024).toFixed(2), 'KB')
       await savePhoto(userId, newPhoto)
+      console.log('✓ Photo saved, reloading...')
       await loadPhotos(userId)
+      console.log('✓ Photos reloaded')
     } catch (error) {
-      console.error('Failed to upload photo:', error)
-      alert('Failed to upload photo')
+      console.error('❌ Failed to upload photo:', error)
+      alert('Failed to upload photo: ' + (error as Error).message)
     }
   }
 
